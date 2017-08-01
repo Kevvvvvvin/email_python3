@@ -4,6 +4,7 @@ import tkinter.filedialog
 import smtplib
 import os
 #import _md5
+import  tkinter as tk
 import shelve
 from email.mime.text import MIMEText
 from email.utils import formataddr
@@ -42,7 +43,6 @@ class User:
 
     def userget(self):
         try:
-            print(self.db['user'])
             userlist = self.db['user']['user']
             return userlist
         except:
@@ -53,7 +53,6 @@ class User:
             del self.db[account]
             self.db['user']['user'].remove(account)
             self.db['num'] -= 1
-            print(self.db['num'])
             #self.db.close()
         else: raise Exception
     def userrefresh(self):
@@ -84,23 +83,19 @@ class MainWindow:
     def userdeladaptor(self, fun, **kwds):
         return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
     def close(self,fun,**kwds):
-        self.frame.destroy()
+        self.root.destroy()
 
 
     #发送邮件
     def send(self,event,filename):
         msg = MIMEMultipart('alternative')
         self.my_sender = self.myCombox.get()
-        print(self.my_sender)
         self.my_receiver =  self.text_receiver.get("0.0", "end")
-        print(self.my_receiver)
         self.my_password, self.my_address = userlist.userinfoget(self.my_sender)
-
         #receiver = self.text_receiver.get("0.0", "end") if(self.text_receiver.get("0.0", "end")) else "未指定"
         subject = self.text_title.get("0.0", "end") if(self.text_title.get("0.0", "end")) else "未指定"
         index = MIMEText(self.text_index.get("0.0", "end"),'plain')
         att1 = MIMEBase('application', 'octet-stream')
-
         msg['From'] = formataddr(['', self.my_sender])  # 括号里的对应发件人邮箱昵称、发件人邮箱账号
         msg['To'] = formataddr(['', self.my_receiver])  # 括号里的对应收件人邮箱昵称、收件人邮箱账号
         msg['Subject'] = subject  # 邮件的主题，也可以说是标题
@@ -122,6 +117,10 @@ class MainWindow:
             server.sendmail(self.my_sender, [self.my_receiver, ], msg.as_string())
             server.quit()
             tkinter.messagebox.showinfo("邮箱","发送成功")
+            self.text_receiver.delete(0.0,END)
+            self.text_title.delete(0.0,END)
+            self.text_index.delete(0.0,END)
+            self.text_filechoose.delete(0.0,END)
         else:tkinter.messagebox.showinfo("邮箱","收件人不能为空")
     #读入文件
     def filechoose(self,event):
@@ -129,8 +128,7 @@ class MainWindow:
         self.text_filechoose.delete(1.0,tkinter.END)
         self.text_filechoose.insert(1.0,self.file_name)
         # print(file_name)
-        print(self.myCombox.current())
-        print(self.myCombox.get())
+
 
     def usercreat(self,event):
         account = simpledialog.askstring('邮箱','请输入账号',initialvalue='example@xx.xxx')
@@ -147,7 +145,7 @@ class MainWindow:
                 return
         try:
             userlist.creat(account=account, password=password, address=address)
-            #self.myCombox = ttk.Combobox(self.frame, width=20, state='readonly', value=myComboList)
+            #self.myCombox = ttk.Combobox(self.root, width=20, state='readonly', value=myComboList)
             self.userlistrefresh()
             #self.__init__()
             tkinter.messagebox.showinfo("邮箱","创建成功！")
@@ -171,7 +169,6 @@ class MainWindow:
         try:
             num = self.myCombox.current() + 1
             account = self.myCombox.get()
-            print(userlist.db['user'])
             userlist.userdel(num=num, account=account)
             self.userlistrefresh()
             tkinter.messagebox.showinfo("邮箱","删除成功")
@@ -180,42 +177,36 @@ class MainWindow:
             tkinter.messagebox.showinfo("邮箱","删除失败")
     def userlistrefresh(self):
         mycombolist = list(userlist.userrefresh())
-        #self.myCombox = ttk.Combobox(self.frame, value=mycombolist)
-        print(self.myCombox.get())
+        #self.myCombox = ttk.Combobox(self.root, value=mycombolist)
         #self.myCombox.set(value=mycombolist)
-        #self.frame.mainloop()
         self.myCombox.configure(value=mycombolist)
-
-        print(mycombolist)
+        root.update_idletasks()
     #初始化布局
-    def __init__(self):
+    def __init__(self,master=None):
 
-
-        self.frame = Tk()
-        self.frame.title("邮件")
-        self.label_user = Label(self.frame, text="选择账号:")
-        self.label_receiver = Label(self.frame, text="   收件人:")
-        self.label_title = Label(self.frame, text="邮件标题:")
-        self.label_index = Label(self.frame, text="邮件内容:")
-        self.label_file = Label(self.frame, text="选择附件:")
+        self.root = master
+        self.label_user = Label(self.root, text="选择账号:")
+        self.label_receiver = Label(self.root, text="   收件人:")
+        self.label_title = Label(self.root, text="邮件标题:")
+        self.label_index = Label(self.root, text="邮件内容:")
+        self.label_file = Label(self.root, text="选择附件:")
 
         myComboList = userlist.userget()
-        print(myComboList)
         # name = StringVar()  textvariable=name, show='*'
-        self.myCombox = ttk.Combobox(self.frame, width=20, state='readonly', value=myComboList)
+        self.myCombox = ttk.Combobox(self.root, width=20, state='readonly', value=myComboList)
         #self.myCombox.bind("<<ComboboxSelected>>", self.userlistrefreshadaptor(self.userlistfresh))
 
-        self.text_receiver = Text(self.frame, height="1", width=30)
-        self.text_title = Text(self.frame, height="1", width=30)
-        self.text_index = Text(self.frame, height="3", width=30)
-        self.text_filechoose = Text(self.frame, height="2", width=30)
+        self.text_receiver = Text(self.root, height="1", width=30)
+        self.text_title = Text(self.root, height="1", width=30)
+        self.text_index = Text(self.root, height="3", width=30)
+        self.text_filechoose = Text(self.root, height="2", width=30)
 
-        # self.button_send = Button(self.frame, text="发送", width=10,command=lambda :self.send(filename=file_name))
-        self.button_send = Button(self.frame, text="发送", width=10)
-        self.button_close = Button(self.frame, text="关闭", width=10)
-        self.button_filechoose = tkinter.Button(self.frame, text="选择文件", width=10, height=1)
-        self.button_usercreat = Button(self.frame, text="新增", width=10)
-        self.button_userdel = Button(self.frame, text="删除", width=10)
+        # self.button_send = Button(self.root, text="发送", width=10,command=lambda :self.send(filename=file_name))
+        self.button_send = Button(self.root, text="发送", width=10)
+        self.button_close = Button(self.root, text="关闭", width=10)
+        self.button_filechoose = tkinter.Button(self.root, text="选择文件", width=10, height=1)
+        self.button_usercreat = Button(self.root, text="新增", width=10)
+        self.button_userdel = Button(self.root, text="删除", width=10)
 
         # 通过中介函数进行事件绑定
         self.button_send.bind("<Button-1>", self.sendadaptor(self.send, filename=self.file_name))
@@ -241,8 +232,11 @@ class MainWindow:
         self.button_filechoose.grid(row=5, column=2)
         self.button_usercreat.grid(row=0, column=2)
         self.button_userdel.grid(row=0, column=3)
-        self.frame.mainloop()
 
 if __name__=="__main__":
     userlist = User()
-    frame = MainWindow()
+    root = tk.Tk()
+    root.title("邮件")
+    window_frame = MainWindow(root)
+    root.mainloop()
+
